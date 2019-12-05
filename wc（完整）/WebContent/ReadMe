@@ -1,0 +1,556 @@
+一、用户模块
+	1、登录功能
+		前台：
+			form 表单提交  post
+			js：非空判断
+				空，则不提交表单
+				非空，则提交
+			回显数据和提示信息
+
+		后台：
+			获取参数
+			非空判断
+				空：
+					将前台传过来的用户名和密码以及提示信息存到request作用域中
+					请求转发跳转回登录页面
+			连接数据库根据用户名查询用户信息 user
+			判断user是否为空
+				空：
+					将前台传过来的用户名和密码以及提示信息存到request作用域中
+					请求转发跳转回登录页面
+			判断密码是否正确
+				不正确：		
+					将前台传过来的用户名和密码以及提示信息存到request作用域中
+					请求转发跳转回登录页面
+				正确：
+					将 用户信息 user 存session
+					将 用户名和密码 存Cookie
+					重定向跳转首页	
+
+	2、用户退出
+		清Cookie
+		清Session  三种方式
+		重定向跳转登录页面
+	
+	3、非法访问拦截（过滤器）
+		拦截什么
+			
+		放行什么
+			1、放行静态页面
+			2、放行指定页面
+			3、放行指定行为
+			4、判断用户是否登录，登录则放行（通过判断Session中的user是否为空）
+			跳转到登录页面
+			
+二、账户模块
+	1、账户列表展示（不分页、不条件查询）
+		前台：
+			点击账户管理
+				给账户管理按钮绑定点击事件
+					判断选项卡是否存在
+						存在：选中该选项卡
+						不存在：添加选项卡并选中
+				选项卡里
+					数据表格显示账户列表
+
+		后台：
+			接受参数
+			判断用户行为
+			通过session获取用户uid
+			通过用户uid从account表中把所有账户查出来并放到集合list中
+			把list转换成json
+			响应给前台
+
+	2、账户添加
+		前台：
+			点击添加按钮，绑定点击事件
+				弹出对话框
+					
+			给取消按钮绑定点击事件，点击关闭对话框
+					
+			保存按钮：
+				接收参数
+				非空判断
+				通过ajax将数据提交后台
+					回调函数  result
+						=1成功
+							提示添加成功
+							刷新数据表格
+							关闭对话框
+						=0失败
+							提示添加失败
+		
+		后台：
+			获取参数
+			非空判断
+				空  响应0
+			通过session获取用户uid
+			jdbc 添加操作 返回受影响行数 row
+			row>0
+				成功，响应1
+			否则
+				失败，响应0
+	
+	3、账户修改
+		前台：
+			给工具栏的修改按钮绑定点击事件
+				判断是否有选中的记录 （ 使用datagrid里的方法 getSelected ：返回第一个被选中的行或如果没有选中的行则返回null。）
+					否：弹出提示框警告用户
+				把数据表格中选中记录里的数据填充进对话框中的表单里（使用form里的方法 load：读取记录填充到表单中，参数格式（键对应表单中name属性:值））
+				弹出对话框
+				
+			给对话框中的取消按钮绑定点击事件
+				关闭对话框
+				
+			给对话框中的保存按钮绑定点击事件
+				获取表单中的数据
+				非空判断
+					空：弹出提示框警告用户
+				通过ajax将数据提交到后台（actionName、accountId）
+					result
+						=1 成功 提示成功、刷新数据表格、关闭对话框 
+						=0 失败 提示失败
+				
+		
+		后台：AccountServlet
+			接受参数
+			判断用户行为
+			获取前台提交过来的表单数据
+			非空判断
+				空：响应0给前台ajax的回调函数
+			通过账户id更新数据库对应的数据，返回受影响的行数row
+			判断是否更新成功
+				row>0 成功：响应1给前台ajax的回调函数
+				否则      失败：响应0给前台ajax的回调函数
+			
+			
+	
+	4、账户删除
+		前台：
+			给工具栏的删除按钮绑定点击事件
+				判断是否选中记录(使用datagrid的方法：getChecked  在复选框呗选中的时候返回所有行)
+					否，提示用户至少选中一条记录
+				获取要删除记录的id，并拼接成需要的格式
+				提示用户是否要删除该记录（使用message的方法）
+					$.messager.confirm('确认对话框', '您想要退出该系统吗？', function(r){
+						if (r){
+						    // ajax请求后台进行删除操作，回调函数接受后台的响应result;
+						    =1 成功 提示成功、刷新数据表格
+							=0 失败 提示失败
+						}
+					});
+		
+		后台：
+			接受参数
+			判断用户行为
+			获取前台提交过来的id
+			非空判断
+				空：响应0给前台ajax的回调函数
+			通过账户id删除数据库对应的数据，返回受影响的行数row
+			判断是否更新成功
+				row>0 成功：响应1给前台ajax的回调函数
+				否则      失败：响应0给前台ajax的回调函数
+	
+	5、分页及条件查询
+		分页：
+			将后台查询到的账户数据按照规定的格式发送给前台的数据表格即可
+			{"total":当前用户账户总数,"rows":当前页要显示的数据（List<Account>）}
+			select * from account where uid = 2 limit 0,5  1  0,5， 2  5,5  3  10,5
+			
+			前台数据表格会传递参数到后台   page（当前页）  rows（每页显示的数量）
+			
+			前台：数据表格datagrid
+			
+			后台：
+				通过Session获取用户uid
+				通过用户uid查询数据库中当前用户账户总数
+				
+				接受前台数据表格传过来的参数 pags和rows
+				设置默认的当前页 currentPage 和每页显示的数量 pageSize
+				非空判断
+					不为空：currentPage = pags  pageSize = rows
+				得到数据库开始查询的下标  (currentPage - 1)*pageSize
+				通过用户uid以及下标和每页显示的数量查询当前页要显示的数据
+				
+				把上面的总数和当前页要显示的数据放到Map里 分别对应键  total 和  rows 的值
+				将Map转换为json并响应给前台
+				
+		分页及条件查询
+		
+			前台：数据表格datagrid
+				添加工具栏查询输入框以及查询按钮
+				给查询按钮绑定点击事件
+					js：获取查询条件参数
+					通过datagrid的方法load，将条件传到后台并且响应数据过来
+						$('#dg').datagrid('load',{
+							code: '01',
+							name: 'name01'
+						});	
+			
+			后台：
+				获取条件参数
+				查询总数的sql select count(1) from account where uid = ? 
+				查询当前页的sqlList  select * from account where uid = ?
+				判断是否为空  (accountName  accountType  createTime 
+							accountName  List<Object> list    list.add(accountName)
+								and accountName = ?    
+								sta.setString(2,accountName)
+							accountName accountType  list.add(accountName) list.add(accountType)
+							    and accountName = ? and accountType = ? 
+							    sta.setString(2,accountName) sta.setString(3,accountName)
+							accountType
+								and accountType = ?    
+								sta.setString(2,accountType)
+								
+								
+							if(accountName != null){
+								and accountName = ? 
+							}
+							sta.setString(2,accountName)
+							
+							
+							if(accountName != null){
+								and accountName = ? 
+							}
+							if(accountType != null){
+								and accountType = ? 
+							}
+							if(accountName != null){
+								sta.setString(2,accountName)
+							}
+							if(accountType != null){
+								if(accountName != null){
+									sta.setString(3,accountType)
+								}else{
+									sta.setString(2,accountName)
+								}
+							}
+										
+				如果不为空，则将不为空的参数放到参数集合里，并且拼接sql语句，
+				（为了解决设置参数的时候的下标不固定问题）
+				
+				通过Session获取用户uid
+				通过用户uid查询数据库中当前用户账户总数
+				通过遍历参数集合设置参数
+				
+				接受前台数据表格传过来的参数 pags和rows
+				设置默认的当前页 currentPage 和每页显示的数量 pageSize
+				非空判断
+					不为空：currentPage = pags  pageSize = rows
+				得到数据库开始查询的下标  (currentPage - 1)*pageSize
+				通过用户uid以及下标和每页显示的数量查询当前页要显示的数据
+				sqlList += "limit ?,?"
+				把 下标index和pageSize存到参数集合里
+				遍历参数集合设置参数
+				
+				
+				把上面的总数和当前页要显示的数据放到Map里 分别对应键  total 和  rows 的值
+				将Map转换为json并响应给前台
+	
+	
+三、收入模块
+	1、分页及条件查询
+		前台：
+			新建 payIn.jsp  添加工具栏、数据表格(url:'payIn')
+			给工具栏查询按钮绑定点击事件
+				获取条件查询参数
+				使用datagrid的load方法将参数发送到后台
+		
+		后台：PayInServlet
+			接受条件查询参数
+			查询总数的sqlCount
+			查询每页显示的数据的sqlPage
+			新建参数集合List<Object> params
+			通过session获取用户uid
+			将uid存到params中
+			非空判断条件参数
+				不为空，则拼接sql并且把不为空的参数添加到参数集合里
+				
+			查询总数 count
+				获取连接
+				预编译(sqlCount)
+				遍历参数集合设置参数
+				执行查询，得到结果集
+				分析结果集，得到count
+				关闭连接
+			
+			查询每页显示的数据
+				获取连接
+				sqlPage += limit ?,?
+				把查询开始的下标index以及每页显示的数量pageSize添加到参数集合里
+				预编译(sqlPage)
+				遍历参数集合设置参数
+				执行查询，得到结果集
+				分析结果集，得到List<PayIn>
+				关闭连接
+			
+			把上面的总数和每页显示的数据放到map中转换为json
+			把json响应给前台
+
+	2、添加收入
+		前台：
+			给添加按钮绑定点击事件
+				重置对话框表单中的数据（使用form里的reset方法）
+				获取当前用户的所有账户信息并加载到combobox中
+				$('#cc').combobox({    
+				    url:'user',    
+				    valueField:'id',    
+				    textField:'accountName'   
+				});  
+				弹出添加对话框（使用dialog的open方法）
+			
+			给取消按钮绑定点击事件
+				关闭对话框	
+			
+			给保存按钮绑定点击事件
+				获取表单里的参数
+				进行非空判断
+					空：提示用户不能为空
+				ajax提交数据到后台，并且得到回调函数里后台响应过来的result
+					result == 1 成功
+						弹出提示框提示用户成功了
+						刷新数据表格
+						关闭对话框
+					否则  失败
+						提示用户失败了
+
+		后台：PayInServlet
+			接受参数
+			判断用户行为
+			
+			接受前台表单中的参数
+			非空判断
+				空：响应0
+			jdbc操作：将数据添加到数据库中，返回影响行数row
+			如果 row>0：响应1
+				通过accountId找到该账户并给该账户的金额增加收入金额
+			否则   响应0
+		
+	
+	3、修改收入
+		前台：
+			增加修改对话框
+			给修改按钮绑定点击事件
+				判断是否至少选中一条记录（datagrid的方法getSelected）
+					否：提示用户
+				加载所属用户
+				打开对话框
+			
+			给取消按钮绑定点击事件
+				关闭对话框
+			
+			给保存按钮绑定点击事件
+				获取表单中的数据
+				非空判断
+					空：提示用户
+				ajax发送请求到后台将表单中的数据提交过去，得到结果result
+					result == 1：成功
+						提示用户成功
+						刷新数据表格
+						关闭对话框
+					result == 0：失败
+						关闭对话框
+		
+		后台：
+			接收参数
+			判断用户行为
+			
+			接收前台表单中的数据 (前台需要把收入主键id传过来)
+			非空判断
+			
+			通过前台传过来的收入主键id查询当前收入记录  PayIn
+			（前台加载修改对话框的时候直接把修改前的money和accountId放到隐藏域）
+			
+			下面的操作当成一个事务  conn.setAutoCommit(false)
+				COMMIT 也可以使用 COMMIT WORK，不过二者是等价的。COMMIT 会提交事务，并使已对数据库进行的所有修改成为永久性的；
+				ROLLBACK 也可以使用 ROLLBACK WORK，不过二者是等价的。回滚会结束用户的事务，并撤销正在进行的所有未提交的修改；
+			{
+				*修改原来账户里的金额（money = money - 原来收入记录里的金额（PayIn.money）） 返回 row
+					String sql = "update account set money = money - ? and updateTime = now() where id = ?";
+				*修改当前账户里的金额（money = money + 前台传过来的收入金额） 返回 row
+					update account set money + ? and updateTime = now() where id = ?
+				*更新收入记录										     返回 row
+			}
+			conn.commit()
+			
+			小强  50  发了 100块  150块        发少了   发150块  200块
+			小强  50 发了 100块  150块     发错人了   发给小红   把小强的100块拿走了  给小红发150
+			
+			
+	
+	4、删除收入
+		前台：
+			给工具栏的删除按钮绑定点击事件
+				判断是否选中记录(使用datagrid的方法：getChecked  在复选框呗选中的时候返回所有行)
+					否，提示用户至少选中一条记录
+				获取要删除记录的id，并拼接成需要的格式 1,2,3
+				提示用户是否要删除该记录（使用message的方法）
+					$.messager.confirm('确认对话框', '您确认要删除吗？', function(r){
+						if (r){
+						    // ajax请求后台进行删除操作，回调函数接受后台的响应result;
+						    =1 成功 提示成功、刷新数据表格
+							=0 失败 提示失败
+						}
+					});
+		
+		后台：
+			接收参数   ids=1,2,3
+			判断非空
+			将ids通过字符串分割得到id数组
+			遍历id数组
+			{
+				通过前台传过来的收入主键id查询当前收入记录  PayIn
+				设置事务不自动提交
+				修改原来账户里的金额(money = money - 原来收入记录里的金额（PayIn.money）)
+				通过主键id删除收入记录
+			}
+			判断是否删除成功   row判断
+			
+
+
+
+四、支出模块
+	1、分页及条件查询
+		前台：
+			新建 payOut.jsp  添加工具栏、数据表格(url:'payOut') (预加载的时候加载条件查询里的支出类型)
+			给工具栏查询按钮绑定点击事件
+				获取条件查询参数
+				使用datagrid的load方法将参数发送到后台
+		
+		后台：PayOutServlet
+			接受条件查询参数
+			查询总数的sqlCount
+			查询每页显示的数据的sqlPage
+			新建参数集合List<Object> params
+			通过session获取用户uid
+			将uid存到params中
+			非空判断条件参数
+				不为空，则拼接sql并且把不为空的参数添加到参数集合里
+				
+			查询总数 count
+				获取连接
+				预编译(sqlCount)
+				遍历参数集合设置参数
+				执行查询，得到结果集
+				分析结果集，得到count
+				关闭连接
+			
+			查询每页显示的数据
+				获取连接
+				sqlPage += limit ?,?
+				把查询开始的下标index以及每页显示的数量pageSize添加到参数集合里
+				预编译(sqlPage)
+				遍历参数集合设置参数
+				执行查询，得到结果集
+				分析结果集，得到List<PayIn>
+				关闭连接
+			
+			把上面的总数和每页显示的数据放到map中转换为json
+			把json响应给前台
+	2、添加支出
+		前台：
+			给添加按钮绑定点击事件
+				重置表单数据
+				加载支出类型（父类型、子类型）
+				加载所属账户
+				弹出对话框
+					
+			给取消按钮绑定点击事件
+				关闭对话框
+				
+			给保存按钮绑定点击事件
+				获取参数
+				非空判断
+				ajax提交表单数据到后台
+					result = 1 成功
+						刷新数据表格
+						关闭对话框
+						提示用户
+					result = 0 失败
+						提示失败
+						
+		后台：
+			接收参数
+			判断用户行为
+			获取前台传过来的数据
+			非空判断
+			判断该账户金额是否大于等于支出金额
+				不够：响应前台 0
+			事务不自动提交
+			修改账户金额（money = money - 支出金额）
+			添加支出记录
+			根据 row 响应前台
+				row > 0 成功 否则 失败
+	
+	3、修改支出
+		前台：
+			给修改按钮绑定点击事件
+				判断是否选中（datagrid的 getSelected）
+					否：提示请至少选一条
+				加载支出类型（父类型、子类型）
+				加载所属账户
+				将选中的记录填充进表单里
+				弹出修改话框
+				
+			给取消按钮绑定点击事件
+				关闭对话框
+				
+			给保存按钮绑定点击事件
+				获取参数
+				非空判断
+				ajax提交表单数据到后台
+					result = 1 成功
+						刷新数据表格
+						关闭对话框
+						提示用户
+					result = 0 失败
+						提示失败
+						
+		后台：
+			获取参数
+			非空判断
+			
+			根据payOutId  查询支出记录修改前  对应的账户id以及金额
+			判断要支出的账户里金额是否足够（注意：同一账户情况不同） select 操作
+				否：响应 0
+			
+			下面的操作放到循环里进行，因为都是update操作  注意事务
+		   	修改原来账户里的金额（money = money + 原来支出记录里的金额（PayOut.money）） 返回 row
+			修改当前账户里的金额（money = money - 前台传过来的支出金额） 返回 row
+			更新支出记录 返回 row	
+
+			判断 row   row > 0：成功   否则失败
+	
+	4、删除支出
+		前台：
+			给删除按钮绑定点击事件
+				通过datagrid 的 getChecked 方法
+				判断是否有选中的记录
+					否：提示用户至少选一条
+				拼接id 得到 ids
+				提示用户是否删除
+				ajax提交数据（ids,actionName）到后台执行删除操作
+		
+		后台：
+			获取参数 ids 1,2,3
+			非空判断
+			将ids截取转换为数组
+			对数组进行遍历
+			通过id查询原来支出账户id以及支出金额
+			修改原来支出账户里的金额 (money = money + 被删除的支出金额)
+			删除选中的记录
+			响应前台
+		
+
+五、报表模块
+	1、获取 Echarts  官网下载  js文件
+	2、引入 ECharts  导入 js
+	3、为 ECharts 准备一个具备大小（宽高）的 容器（div）
+	4、基于准备好的容器，初始化echarts实例，告诉 echarts 你要渲染的容器在哪里
+	var myChart = echarts.init(document.getElementById('容器id'));
+	5、指定图表的配置项和数据 ，告诉 echarts 要渲染成什么图，加什么数据
+	6、使用刚指定的配置项和数据显示图表。(myChart.setOption(option));
+	
+	加载数据：将上面4、5、6封装到方法里，ajax访问后台得到数据后将数据传到方法内，实现动态加载
+	
+	7、配置项可以查看官网的文档配置项手册  https://www.echartsjs.com/zh/option.html#title
